@@ -1,5 +1,5 @@
 from functools import wraps
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, abort, jsonify
 import pymysql
 from flask_cors import CORS
 import re
@@ -142,11 +142,15 @@ def update():
 		return render_template("update.html", msg = msg)
 	return redirect(url_for('login'))
 
+@app.errorhandler(401)
+def unAuthorizedUser(msg):
+	return render_template('unauthorized_page.html',msg=str(msg)), 401
+
 def isAdmin(func):
 	@wraps(func)
 	def decorated(*args,**kwargs):
 		if (not (session["loggedin"] and session["username"] == 'admin')):
-			return render_template('unauthorized_page.html',msg="This page is not authorized for this user 401"), 401
+			abort(401,description = "This page is not authorized for this user 401") 
 		return func(*args,**kwargs)
 	return decorated
 			 
