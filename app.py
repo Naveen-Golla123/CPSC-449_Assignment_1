@@ -1,3 +1,4 @@
+from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, session
 import pymysql
 from flask_cors import CORS
@@ -51,6 +52,7 @@ def login():
 		session.modified = True
 		return redirect(url_for('index'))
 	return render_template('login.html', msg = msg)
+
 @app.route('/logout')
 def logout():
     session.pop('loggedin', None)
@@ -81,7 +83,7 @@ def register():
 		elif not re.match(r'[A-Za-z0-9]+', username):
 			msg = 'name must contain only characters and numbers !'
 		else:
-			cur.execute('INSERT INTO accounts VALUES (NULL, % s, % s, % s, % s, % s, % s, % s, % s, % s)', (username, password, email, organisation, address, city, state, country, postalcode, ))
+			cur.execute('INSERT INTO accounts VALUES (3, % s, % s, % s, % s, % s, % s, % s, % s, % s)', (username, password, email, organisation, address, city, state, country, postalcode, ))
 			conn.commit()
 
 			msg = 'You have successfully registered !'
@@ -139,6 +141,20 @@ def update():
 			msg = 'Please fill out the form !'
 		return render_template("update.html", msg = msg)
 	return redirect(url_for('login'))
+
+def isAdmin(func):
+	@wraps(func)
+	def decorated(*args,**kwargs):
+		if (not (session["loggedin"] and session["username"] == 'admin')):
+			return render_template('unauthorized_page.html',msg="This page is not authorized for this user 401"), 401
+		return func(*args,**kwargs)
+	return decorated
+			 
+@app.route("/admin",methods=['POST','GET'])
+@isAdmin
+def admin():
+	return render_template("admin.html")
+
 
 if __name__ == "__main__":
 	app.run(host ="localhost", port = int("5000"),debug=True)
